@@ -1,31 +1,45 @@
-# oracle
+# oracle: pixel combinations and image counts
 
-Calculate and generate all possible NxN images (where `N` is a user-given integer in pixels).
+oracle explores pixel-color combinations using Python and Pillow. It supports RGB and black-and-white palettes, theoretical combination counts, and sample-based JPEG storage estimates.
 
-### Usage
+## 1. Combinatorial model
 
-* Required arguments:
-    * `-s` (`--size`): Width and height of images (in pixels)
+For a grid containing `p` pixels, RGB mode considers `(256 ** 3) ** p` arrangements. Black-and-white mode considers `2 ** p`. The generator constructs Pillow image objects, and the CLI saves them as UUID-named JPEG files.
 
-* Optional arguments:
-    * `-p` (`--path`): The path where the images will be stored. Defaults to `$PWD/images`
-    * `---estimate-size`: If given, will estimate the total size that would've been taken by the images and exit
-    * `---estimate-ammount`: If given, will estimate (actually, it's not an estimative) the total ammount of images that would've been generated and exit
-    * `-e` (`--estimate`): Alias to `---estimate-size ---estimate-ammount`
-    * `---black-white`: If given, will generate only black and white (`rgb(0, 0, 0) and rgb(255, 255, 255)`) images (affects the estimatives as well)
+Storage estimation multiplies the mean encoded size of three sample JPEGs by the theoretical count. This is an approximation, not a measured total for the full image space.
 
-Examples:
-```shell
-$ python3 app.py -s 1 1 # will generate all 1x1 images possible - that's 256 ^ 3
-$ python3 app.py -s 10 10 ---estimate-size # will estimate the ammount taken by all possible 10x10 images (which is 256 ^ 3 ^ 100 images)
-$ python3 app.py -s 6 6 ---black-white # will generate all possible 6x6 black and white images (2 ^ 36 images - about 42 TB)
+## 2. Requirements
+
+Python 3 and Pillow. `requirements.txt` pins `Pillow==7.2.0`; use a Python environment compatible with that dependency version.
+
+## 3. Bounded example
+
+From the repository root, create a new empty output directory and request the count for a one-pixel black-and-white grid:
+
+```sh
+mkdir oracle-demo
+python3 app.py -s 1 1 -p oracle-demo ---black-white ---estimate-ammount
 ```
 
-### Dependencies
+Expected count from the combinatorial model:
 
-Check `requirements.txt`
+```text
+2 images
+```
 
+To generate that same bounded case:
 
-### Note on alpha levels (RGBA)
+```sh
+python3 app.py -s 1 1 -p oracle-demo ---black-white
+```
 
-I guess I could've added a way to let the user choose if the script should or should not use RGBA (instead of just the good ol' RGB). But, truth being told, I was lazy xD. Therefore, maybe, in the future, I'll add such feature. Who knows.
+Every invocation, including count-only mode, first creates, measures, and removes three temporary sample JPEGs. Generation then writes the final UUID-named JPEGs. The output directory must already exist and be writable.
+
+The three-hyphen switches and the spelling of `---estimate-ammount` match the current parser. Keep demonstrations small, including estimation-only requests.
+
+## 4. Limitations
+
+- The number of arrangements grows exponentially; full RGB generation also materializes a large color pool.
+- Rectangular-grid indexing is unreliable. Keep generation examples square and very small.
+- JPEG is lossy, so distinct source arrangements do not guarantee distinct encoded image contents.
+- The estimator runs before directory creation, so a missing output directory causes failure.
